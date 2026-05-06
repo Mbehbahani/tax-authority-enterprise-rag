@@ -1,0 +1,61 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.eggs
+dist/
+build/
+*.whl
+.venv
+venv/
+env/
+
+# Development files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Secrets (NEVER bake credentials)
+.env
+*.pem
+*.key
+*.crt
+*.p12
+
+# Large/raw corpus (synthesized in seed-corpus.sh)
+corpus/raw/
+corpus/*.json
+corpus/*.jsonl
+
+# Reports and generated artifacts
+reports/
+*.html
+*.xml
+
+# Documentation (not needed in image)
+*.md
+plans/
+design/
+
+# Test result artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+junit*.xml
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Node (in case any tooling exists)
+node_modules/

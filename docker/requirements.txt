@@ -1,0 +1,25 @@
+# Core AWS / OpenSearch / Redis
+boto3==1.34.149
+botocore==1.34.149
+opensearch-py==2.7.1
+redis==5.0.8
+
+# Evaluation frameworks
+# deepeval 0.21.73 pins opentelemetry-api==1.24.0 — must align all otel packages
+ragas==0.1.21
+deepeval==0.21.73
+
+# Testing
+pytest==8.3.2
+pytest-asyncio==0.23.8
+pytest-benchmark==4.0.0
+pytest-html==4.1.1
+
+# OpenTelemetry — must match deepeval's constraint (1.24.0)
+opentelemetry-api==1.24.0
+opentelemetry-sdk==1.24.0
+opentelemetry-exporter-otlp-proto-grpc==1.24.0
+opentelemetry-instrumentation==0.45b0
+
+# Utilities
+numpy==1.26.4

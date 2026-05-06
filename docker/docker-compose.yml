@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Tax Authority RAG — Docker Compose stack
+# Services: app (pytest runner), opensearch (Lucene k-NN), redis-stack, jaeger
+# NO local LLM — app calls AWS Bedrock directly for Haiku + Cohere embed/rerank.
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  rag-net:
+    driver: bridge
+
+volumes:
+  opensearch-data:
+  redis-data:
+
+services:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # OpenSearch 2.18 — single node, security plugin enabled, Lucene k-NN
+  # ────────────────────────────────────────────────────────────────────────────
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    container_name: tax-rag-opensearch
+    environment:
+      - cluster.name=tax-rag-cluster
+      - node.name=opensearch-node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      - plugins.security.disabled=false
+      - plugins.security.ssl.http.enabled=true
+      - plugins.security.ssl.http.pemcert_filepath=esnode.pem
+      - plugins.security.ssl.http.pemkey_filepath=esnode-key.pem
+      - plugins.security.ssl.http.pemtrustedcas_filepath=root-ca.pem
+      - plugins.security.ssl.transport.pemcert_filepath=esnode.pem
+      - plugins.security.ssl.transport.pemkey_filepath=esnode-key.pem
+      - plugins.security.ssl.transport.pemtrustedcas_filepath=root-ca.pem
+      - plugins.security.allow_unsafe_democertificates=true
+      - plugins.security.allow_default_init_securityindex=true
+      - plugins.security.authcz.admin_dn=CN=kirk,OU=client,O=client,L=test,C=de
+      - knn.plugin.enabled=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    networks:
+      - rag-net
+    healthcheck:
+      test: >
+        curl -fsk
+        -u admin:${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+        "https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=60s"
+        || exit 1
+      interval: 20s
+      timeout: 70s
+      retries: 10
+      start_period: 90s
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Redis Stack 7.4 — semantic cache + session
+  # ────────────────────────────────────────────────────────────────────────────
+  redis-stack:
+    image: redis/redis-stack:7.4.0-v0
+    container_name: tax-rag-redis
+    environment:
+      - REDIS_ARGS=--maxmemory 1gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - rag-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Jaeger all-in-one — OTLP gRPC 4317, UI 16686
+  # ────────────────────────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: tax-rag-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=memory
+      - MEMORY_MAX_TRACES=10000
+    networks:
+      - rag-net
+    healthcheck:
+      test: >
+        wget -qO- http://localhost:14269/
+        || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # App — Python 3.12-slim, runs pytest against the RAG test suite
+  # AWS Bedrock credentials injected from .env (never baked into image)
+  # ────────────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: tax-rag-app
+    env_file:
+      - .env
+    environment:
+      - OPENSEARCH_URL=https://opensearch:9200
+      - OPENSEARCH_USER=admin
+      - OPENSEARCH_PASS=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      - OPENSEARCH_VERIFY_CERTS=false
+      - REDIS_URL=redis://redis-stack:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - BEDROCK_LLM_ID=${BEDROCK_LLM_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}
+      - BEDROCK_EMBED_ID=${BEDROCK_EMBED_ID:-cohere.embed-multilingual-v3}
+      - BEDROCK_RERANK_ID=${BEDROCK_RERANK_ID:-cohere.rerank-v3-5:0}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - PYTHONPATH=/app
+    volumes:
+      - ../reports:/app/reports
+    networks:
+      - rag-net
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      redis-stack:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import boto3; boto3.client('sts', region_name='us-east-1').get_caller_identity()"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 30s

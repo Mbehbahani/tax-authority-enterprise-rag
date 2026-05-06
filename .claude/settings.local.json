@@ -6,7 +6,22 @@
       "PowerShell(jq *)",
       "Bash(aws sts get-caller-identity *)",
       "Bash(aws bedrock *)",
-      "Bash(aws bedrock-runtime *)"
+      "Bash(aws bedrock-runtime *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(mkdir -p /mnt/d/AWS/Legal/docker/healthchecks /mnt/d/AWS/Legal/scripts /mnt/d/AWS/Legal/reports)",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Directory -Force -Path 'D:\\\\AWS\\\\Legal\\\\docker\\\\healthchecks', 'D:\\\\AWS\\\\Legal\\\\scripts', 'D:\\\\AWS\\\\Legal\\\\reports' | Out-Null; Write-Output 'Directories created'\")",
+      "Bash(command -v docker)",
+      "Bash(pip install *)",
+      "Bash(python -m pytest --collect-only -q)",
+      "Bash(python -m pytest -m \"not slow and not integration and not latency\" --tb=line -q)",
+      "Bash(python -m pytest test_rbac_redteam.py::TestHelpdeskDirectFIODQuery::test_helpdesk_exact_fiod_title_query_refuses -vv)",
+      "Bash(python -m pytest -m \"not slow and not integration\" --tb=line -q)",
+      "Bash(REDIS_URL=redis://localhost:6379 python -m pytest test_semantic_cache.py -m integration --tb=line -q)",
+      "Bash(python -m pytest test_latency_budgets.py -v)",
+      "Bash(python -m pytest -m \"not slow and not integration\" --tb=no -q)",
+      "Bash(python -m pytest test_latency_budgets.py::test_ttft_p95_within_budget -v -s)",
+      "Bash(powershell *)"
     ]
   }
 }

@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dev override: bind-mount source, expose ports, hot reload
+# Applied automatically by `docker compose up` when this file is present.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  opensearch:
+    ports:
+      - "9200:9200"   # REST API
+      - "9600:9600"   # Performance Analyzer
+
+  redis-stack:
+    ports:
+      - "6379:6379"   # Redis
+      - "8001:8001"   # RedisInsight UI
+
+  jaeger:
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+
+  app:
+    build:
+      target: runtime
+    volumes:
+      # Bind-mount source for hot reload during dev iteration
+      - ../tests:/app/tests
+      - ../reports:/app/reports
+    ports:
+      - "5678:5678"   # debugpy port for VS Code attach
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      # Override command to allow running specific test files
+    # Override CMD for interactive debugging:
+    # command: ["python", "-m", "pytest", "tests/", "-v", "-s", "--tb=long"]
+    stdin_open: true
+    tty: true
