@@ -195,32 +195,6 @@ Before running anything, review:
 - `docker/IAM-POLICY.md`
 
 You will need valid AWS credentials and Bedrock access for the configured model IDs.
-
----
-
-## Security note
-
-This repository discusses sensitive access-control design patterns for regulated data. Even in prototype or evaluation mode:
-
-- do not commit real secrets
-- do not use root credentials in shared workflows
-- treat RBAC and redaction behavior as first-class test concerns
-
-See [`SECURITY.md`](SECURITY.md) for repository guidance.
-
----
-
-## Contributing
-
-Contributions are welcome, especially around:
-
-- architecture clarity
-- evaluation rigor
-- reproducibility
-- documentation quality
-
-Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a change.
-
 ---
 
 ## Citation / attribution
